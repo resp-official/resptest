@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
@@ -26,11 +27,8 @@ import {
   Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ethers } from 'ethers';
 import { MiningAnalysisService } from './services/geminiService';
 import { AsteroidAnalysis, RoadmapItem } from './types';
-
-const RECIPIENT_ADDRESS = "0x3178e7DEEE9E0F733d7fc3DCA84Ea791aC6bd4c0";
 
 const RespLogo = ({ className = "w-full h-full", strokeWidth = 16 }) => (
   <svg 
@@ -43,9 +41,7 @@ const RespLogo = ({ className = "w-full h-full", strokeWidth = 16 }) => (
     strokeLinecap="square" 
     strokeLinejoin="miter"
   >
-    {/* Sol Parça: Sola bakan V (<), açık ucu sağa (merkeze) bakar */}
     <path d="M 35 25 L 10 50 L 35 75" />
-    {/* Sağ Parça: Sağa bakan V (>), açık ucu sola (merkeze) bakar */}
     <path d="M 65 25 L 90 50 L 65 75" />
   </svg>
 );
@@ -267,11 +263,6 @@ const App: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMissionOpen, setIsMissionOpen] = useState(false);
   
-  const [account, setAccount] = useState<string | null>(null);
-  const [isMinting, setIsMinting] = useState<string | null>(null); 
-  const [txHash, setTxHash] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   // Scanner States
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<AsteroidAnalysis | null>(null);
@@ -283,21 +274,6 @@ const App: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const connectWallet = async () => {
-    setError(null);
-    if (typeof (window as any).ethereum !== 'undefined') {
-      try {
-        const provider = new ethers.BrowserProvider((window as any).ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        setAccount(accounts[0]);
-      } catch (err: any) {
-        setError("Connection rejected.");
-      }
-    } else {
-      alert("Install MetaMask to access the RESP Protocol.");
-    }
-  };
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,24 +288,6 @@ const App: React.FC = () => {
       alert("Celestial body analysis failed. Target may be out of range or unknown.");
     } finally {
       setIsScanning(false);
-    }
-  };
-
-  const handleMint = async (tier: string, ethPrice: string) => {
-    setError(null);
-    if (!account) { await connectWallet(); return; }
-    setIsMinting(tier);
-    setTxHash(null);
-    try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const tx = await signer.sendTransaction({ to: RECIPIENT_ADDRESS, value: ethers.parseEther(ethPrice) });
-      await tx.wait();
-      setTxHash(tx.hash);
-      setIsMinting(null);
-    } catch (err: any) {
-      setError(err.reason || err.message || "Mint failed.");
-      setIsMinting(null);
     }
   };
 
@@ -348,10 +306,27 @@ const App: React.FC = () => {
   ];
 
   const nftTiers = [
-    { tier: 'Stellar Dust', price: '0.001', icon: '✦', ethLabel: '0.001 ETH' },
-    { tier: 'Core Initiate', price: '0.005', icon: '◈', ethLabel: '0.005 ETH' },
-    { tier: 'Orbit Vanguard', price: '0.1', icon: '◆', ethLabel: '0.1 ETH', featured: true },
-    { tier: "Founder's Circle", price: '0.5', icon: '⬡', ethLabel: '0.5 ETH' }
+    { 
+      tier: 'Stellar Dust', 
+      icon: '✦', 
+      link: 'https://og.rarible.com/token/base/0x55a921a57f7f15df2f229ab9889506ca89310800:22376951541997075552095926033075579032637584999895204922044273269803719852037' 
+    },
+    { 
+      tier: 'Core Initiate', 
+      icon: '◈', 
+      link: 'https://og.rarible.com/token/base/0x55a921a57f7f15df2f229ab9889506ca89310800:22376951541997075552095926033075579032637584999895204922044273269803719852036' 
+    },
+    { 
+      tier: 'Orbit Vanguard', 
+      icon: '◆', 
+      link: 'https://og.rarible.com/token/base/0x55a921a57f7f15df2f229ab9889506ca89310800:22376951541997075552095926033075579032637584999895204922044273269803719852035', 
+      featured: true 
+    },
+    { 
+      tier: "Founder's Circle", 
+      icon: '⬡', 
+      link: 'https://og.rarible.com/token/base/0x55a921a57f7f15df2f229ab9889506ca89310800:22376951541997075552095926033075579032637584999895204922044273269803719852034' 
+    }
   ];
 
   return (
@@ -382,10 +357,6 @@ const App: React.FC = () => {
                 {item}
               </a>
             ))}
-            <button onClick={connectWallet} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold tracking-[0.2em] transition-all transform active:scale-95 uppercase ${account ? 'bg-purple-500/10 border border-purple-500/30 text-purple-400' : 'bg-white text-black hover:bg-purple-500 hover:text-white'}`}>
-              <Wallet className="w-3 h-3" />
-              {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Connect Wallet'}
-            </button>
           </div>
           <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             {isMenuOpen ? <X /> : <Menu />}
@@ -662,10 +633,14 @@ const App: React.FC = () => {
                 {nft.featured && <span className="absolute top-6 right-6 bg-purple-500 text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg shadow-purple-500/20">Vanguard</span>}
                 <div className="text-5xl mb-8 group-hover:scale-110 transition-transform inline-block">{nft.icon}</div>
                 <h3 className="text-2xl font-display font-bold mb-3">{nft.tier}</h3>
-                <div className="text-4xl font-display font-bold text-white mb-10 tracking-tight">{nft.ethLabel}</div>
-                <button onClick={() => handleMint(nft.tier, nft.price)} disabled={!!isMinting} className={`w-full py-5 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 uppercase text-[10px] tracking-[0.2em] ${nft.featured ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl shadow-purple-500/30' : 'bg-white text-black hover:bg-slate-200'} disabled:opacity-50`}>
-                  {isMinting === nft.tier ? <><Loader2 className="w-4 h-4 animate-spin" /> Transmitting...</> : <><Zap className="w-4 h-4" /> Initialize Mint</>}
-                </button>
+                <a 
+                  href={nft.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className={`w-full py-5 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 uppercase text-[10px] tracking-[0.2em] ${nft.featured ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl shadow-purple-500/30' : 'bg-white text-black hover:bg-slate-200'}`}
+                >
+                  <Zap className="w-4 h-4" /> View on Rarible
+                </a>
               </div>
             ))}
           </div>
@@ -696,9 +671,6 @@ const App: React.FC = () => {
               <span className="ml-[-4px]">RESP</span>
             </div>
             <p>© 2025 RESP. Deep Space Exploration & Extraction.</p>
-            <div className="flex gap-10">
-              <a href={`https://etherscan.io/address/${RECIPIENT_ADDRESS}`} target="_blank" className="hover:text-white transition-colors flex items-center gap-2">Protocol Treasury: {RECIPIENT_ADDRESS.slice(0,10)}... <ExternalLink className="w-3 h-3" /></a>
-            </div>
           </div>
         </div>
       </footer>
