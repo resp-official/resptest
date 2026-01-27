@@ -6,17 +6,16 @@ export class MiningAnalysisService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Vite build sürecinde API anahtarını process.env.API_KEY olarak mapliyoruz
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      console.warn("RESP: Gemini API Key not found in environment variables.");
-    }
-    this.ai = new GoogleGenAI({ apiKey: apiKey || '' });
+    // Vite build sürecinde enjekte edilen anahtarı alıyoruz
+    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async scanAsteroid(query: string): Promise<AsteroidAnalysis> {
-    if (!process.env.API_KEY) {
-      throw new Error("API Key is missing. Please configure your environment variables.");
+    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY);
+    
+    if (!apiKey) {
+      throw new Error("Gemini API Key is not configured. Please add API_KEY to Vercel Environment Variables.");
     }
 
     const response = await this.ai.models.generateContent({
