@@ -3,8 +3,6 @@ import { AsteroidAnalysis } from "../types";
 
 export class MiningAnalysisService {
   private getAI() {
-    // Direct initialization using process.env.API_KEY as per guidelines.
-    // The key's availability is assumed to be handled by the environment.
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -13,8 +11,8 @@ export class MiningAnalysisService {
 
     try {
         const response = await ai.models.generateContent({
-          // Using gemini-3-pro-preview for complex scientific and economic mining analysis
-          model: "gemini-3-pro-preview",
+          // gemini-3-flash-preview daha yüksek hız limitlerine sahiptir
+          model: "gemini-3-flash-preview",
           contents: `Analyze the celestial body: "${query}". Provide a scientific and economic mining report in JSON format.`,
           config: {
             systemInstruction: "You are a space mining AI. Provide accurate data for real celestial bodies (planets, asteroids, moons) in JSON format. If it's not a real space body, return an error message in scientific tone.",
@@ -51,7 +49,6 @@ export class MiningAnalysisService {
         if (!text) throw new Error("Empty AI response.");
         const analysis = JSON.parse(text) as AsteroidAnalysis;
 
-        // Extracting grounding chunks to display source links as required by Search Grounding rules.
         const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
         if (groundingMetadata?.groundingChunks) {
           analysis.sources = groundingMetadata.groundingChunks
@@ -65,7 +62,7 @@ export class MiningAnalysisService {
         return analysis;
     } catch (e: any) {
         console.error("Gemini Error:", e);
-        throw new Error(`Analysis failed for '${query}'. AI says: ${e.message || 'Unknown error'}`);
+        throw new Error(`Analysis failed for '${query}'. Target may be out of range or unknown.`);
     }
   }
 }
