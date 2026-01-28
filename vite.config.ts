@@ -1,10 +1,10 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
   define: {
+    // Vercel Environment Variables'dan gelen API_KEY'i tarayıcı koduna aktarır
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
   },
   server: {
@@ -12,6 +12,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    emptyOutDir: true
   }
 });
