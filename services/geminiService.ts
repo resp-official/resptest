@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AsteroidAnalysis } from "../types";
 
@@ -6,31 +5,31 @@ export class MiningAnalysisService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Vite build sürecinde enjekte edilen anahtarı alıyoruz
-    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
+    // Vite config define üzerinden gelen API_KEY'i kullanıyoruz
+    const apiKey = process.env.API_KEY || '';
     this.ai = new GoogleGenAI({ apiKey });
   }
 
   async scanAsteroid(query: string): Promise<AsteroidAnalysis> {
-    const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY);
+    const apiKey = process.env.API_KEY;
     
-    if (!apiKey) {
-      throw new Error("Gemini API Key is not configured. Please add API_KEY to Vercel Environment Variables.");
+    if (!apiKey || apiKey === '') {
+      throw new Error("Gemini API Key eksik. Lütfen Vercel ayarlarına API_KEY ekleyin.");
     }
 
     const response = await this.ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Perform a detailed analysis of the real celestial body: "${query}". Provide a professional spectroscopic and geological mining report based on actual scientific data, including its real spectral type, known or estimated composition (e.g., metals, volatiles), and its estimated economic value in current markets.`,
+      contents: `Analyze the celestial body: "${query}". Provide a scientific and economic mining report in JSON format.`,
       config: {
-        systemInstruction: "You are an AI Deep-Space Spectroscopist and Astro-Economist. Your task is to generate accurate analysis reports for real celestial bodies (asteroids, planets, moons) in JSON format. Use scientifically accurate Spectral classifications (M-type, S-type, C-type, etc.). If a body is famous (like Psyche or Bennu), use its known data. For value, provide a realistic estimate in USD. The 'description' should be a professional briefing for a mining executive.",
+        systemInstruction: "You are a space mining AI. Provide accurate data for real celestial bodies in JSON format. Use scientific spectral types.",
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }],
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            name: { type: Type.STRING, description: "Official name of the body (e.g., '16 Psyche', 'Mars', 'Bennu')" },
-            type: { type: Type.STRING, description: "Spectral class or Planet type (e.g., M-Type Metallic, Terrestrial Planet)" },
-            estimatedValue: { type: Type.STRING, description: "Estimated market value in USD (e.g., '$10 Quintillion' or '$0 - Research Only')" },
+            name: { type: Type.STRING },
+            type: { type: Type.STRING },
+            estimatedValue: { type: Type.STRING },
             composition: {
               type: Type.ARRAY,
               items: {
@@ -54,11 +53,11 @@ export class MiningAnalysisService {
 
     try {
         const text = response.text;
-        if (!text) throw new Error("Empty response from AI");
+        if (!text) throw new Error("AI yanıt veremedi.");
         return JSON.parse(text) as AsteroidAnalysis;
     } catch (e) {
-        console.error("Failed to parse AI response:", response.text);
-        throw new Error("Analysis failed. Please try a different target.");
+        console.error("AI parse error:", response.text);
+        throw new Error("Analiz başarısız oldu. Lütfen geçerli bir gök cismi ismi girin (Örn: Mars, Psyche, Ceres).");
     }
   }
 }
