@@ -2,62 +2,70 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AsteroidAnalysis } from "../types";
 
 export class MiningAnalysisService {
-  private ai: GoogleGenAI;
-
-  constructor() {
-    // Vite config define üzerinden gelen API_KEY'i kullanıyoruz
-    const apiKey = process.env.API_KEY || '';
-    this.ai = new GoogleGenAI({ apiKey });
+  private getAI() {
+    // Direct initialization using process.env.API_KEY as per guidelines.
+    // The key's availability is assumed to be handled by the environment.
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
   async scanAsteroid(query: string): Promise<AsteroidAnalysis> {
-    const apiKey = process.env.API_KEY;
-    
-    if (!apiKey || apiKey === '') {
-      throw new Error("Gemini API Key eksik. Lütfen Vercel ayarlarına API_KEY ekleyin.");
-    }
-
-    const response = await this.ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze the celestial body: "${query}". Provide a scientific and economic mining report in JSON format.`,
-      config: {
-        systemInstruction: "You are a space mining AI. Provide accurate data for real celestial bodies in JSON format. Use scientific spectral types.",
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }],
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING },
-            type: { type: Type.STRING },
-            estimatedValue: { type: Type.STRING },
-            composition: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  material: { type: Type.STRING },
-                  percentage: { type: Type.NUMBER }
-                }
-              }
-            },
-            miningDifficulty: { 
-                type: Type.STRING, 
-                description: "Must be 'Low', 'Medium', 'High', or 'Extreme'" 
-            },
-            description: { type: Type.STRING }
-          },
-          required: ["name", "type", "estimatedValue", "composition", "miningDifficulty", "description"]
-        }
-      }
-    });
+    const ai = this.getAI();
 
     try {
+        const response = await ai.models.generateContent({
+          // Using gemini-3-pro-preview for complex scientific and economic mining analysis
+          model: "gemini-3-pro-preview",
+          contents: `Analyze the celestial body: "${query}". Provide a scientific and economic mining report in JSON format.`,
+          config: {
+            systemInstruction: "You are a space mining AI. Provide accurate data for real celestial bodies (planets, asteroids, moons) in JSON format. If it's not a real space body, return an error message in scientific tone.",
+            responseMimeType: "application/json",
+            tools: [{ googleSearch: {} }],
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                type: { type: Type.STRING },
+                estimatedValue: { type: Type.STRING },
+                composition: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      material: { type: Type.STRING },
+                      percentage: { type: Type.NUMBER }
+                    }
+                  }
+                },
+                miningDifficulty: { 
+                    type: Type.STRING, 
+                    description: "Must be 'Low', 'Medium', 'High', or 'Extreme'" 
+                },
+                description: { type: Type.STRING }
+              },
+              required: ["name", "type", "estimatedValue", "composition", "miningDifficulty", "description"]
+            }
+          }
+        });
+
         const text = response.text;
-        if (!text) throw new Error("AI yanıt veremedi.");
-        return JSON.parse(text) as AsteroidAnalysis;
-    } catch (e) {
-        console.error("AI parse error:", response.text);
-        throw new Error("Analiz başarısız oldu. Lütfen geçerli bir gök cismi ismi girin (Örn: Mars, Psyche, Ceres).");
+        if (!text) throw new Error("Empty AI response.");
+        const analysis = JSON.parse(text) as AsteroidAnalysis;
+
+        // Extracting grounding chunks to display source links as required by Search Grounding rules.
+        const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+        if (groundingMetadata?.groundingChunks) {
+          analysis.sources = groundingMetadata.groundingChunks
+            .filter((chunk: any) => chunk.web)
+            .map((chunk: any) => ({
+              title: chunk.web?.title || 'Scientific Source',
+              uri: chunk.web?.uri || '#'
+            }));
+        }
+
+        return analysis;
+    } catch (e: any) {
+        console.error("Gemini Error:", e);
+        throw new Error(`Analysis failed for '${query}'. AI says: ${e.message || 'Unknown error'}`);
     }
   }
 }

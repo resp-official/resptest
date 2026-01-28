@@ -30,12 +30,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MiningAnalysisService } from './services/geminiService';
 import { AsteroidAnalysis, RoadmapItem } from './types';
 
+// Fixed: Removed 'translate' property from SVG as it is not part of SVGProps<SVGSVGElement>.
 const RespLogo = ({ className = "w-full h-full", strokeWidth = 16 }) => (
   <svg 
     viewBox="0 0 100 100" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg" 
-    className={className}
+    className={`${className} notranslate`}
     stroke="currentColor" 
     strokeWidth={strokeWidth} 
     strokeLinecap="square" 
@@ -207,7 +208,8 @@ const HyperRealisticSpaceMining = () => {
                    <motion.span 
                         initial={{ opacity: 0, x: -40 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="text-purple-400 text-xs md:text-sm font-bold tracking-[0.9em] uppercase font-display drop-shadow-[0_4px_12px_rgba(0,0,0,1)]"
+                        className="text-purple-400 text-xs md:text-sm font-bold tracking-[0.9em] uppercase font-display drop-shadow-[0_4px_12px_rgba(0,0,0,1)] notranslate"
+                        translate="no"
                     >
                         DEEP SPACE MINING
                     </motion.span>
@@ -239,13 +241,13 @@ const HyperRealisticSpaceMining = () => {
                 <div className="flex items-start flex-col gap-2.5">
                     <div className="flex items-center gap-5">
                         <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_25px_rgba(34,211,238,1)]" />
-                        <span className="text-[13px] font-mono text-white/95 uppercase tracking-[0.6em] font-bold drop-shadow-lg">
+                        <span className="text-[13px] font-mono text-white/95 uppercase tracking-[0.6em] font-bold drop-shadow-lg notranslate" translate="no">
                             {stage === 'launch' && "MISSION STATE: LEO ASCENT"}
                             {stage === 'transit' && "MISSION STATE: TRANSLUNAR INJECTION"}
                             {stage === 'extraction' && "MISSION STATE: SURFACE EXTRACTION"}
                         </span>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-500 tracking-[0.5em] uppercase ml-8 bg-black/40 px-3 py-1 rounded backdrop-blur-sm">
+                    <span className="text-[11px] font-mono text-slate-500 tracking-[0.5em] uppercase ml-8 bg-black/40 px-3 py-1 rounded backdrop-blur-sm notranslate" translate="no">
                         TARGET: MOON // VESSEL: RESP-OSIRIS-01
                     </span>
                 </div>
@@ -267,6 +269,7 @@ const App: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<AsteroidAnalysis | null>(null);
   const [searchSeed, setSearchSeed] = useState("");
+  
   const gemini = new MiningAnalysisService();
 
   useEffect(() => {
@@ -283,9 +286,9 @@ const App: React.FC = () => {
     try {
       const result = await gemini.scanAsteroid(searchSeed.trim());
       setScanResult(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Celestial body analysis failed. Target may be out of range or unknown.");
+      alert(err.message || "An unexpected error occurred during analysis.");
     } finally {
       setIsScanning(false);
     }
@@ -343,7 +346,7 @@ const App: React.FC = () => {
             <div className="w-10 h-10 flex items-center justify-center text-white transition-transform group-hover:scale-110">
               <RespLogo strokeWidth={16} />
             </div>
-            <span className="text-2xl font-display font-bold tracking-tighter uppercase ml-[-4px]">RESP</span>
+            <span className="text-2xl font-display font-bold tracking-tighter uppercase ml-[-4px] notranslate" translate="no">RESP</span>
           </a>
           
           <div className="hidden md:flex items-center gap-8">
@@ -389,7 +392,7 @@ const App: React.FC = () => {
       <section id="scanner" className="py-32 px-6 relative">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-20 items-start">
-            <div className="w-full lg:w-1/2">
+            <div className="w-full lg:w-1/2 text-left">
               <span className="text-cyan-400 font-bold tracking-[0.5em] text-[10px] uppercase font-mono mb-6 block">Spectroscopic Acquisition</span>
               <h2 className="text-4xl md:text-5xl font-display font-bold mb-8 tracking-tighter">Asteroid Scanner</h2>
               <p className="text-slate-400 font-light leading-relaxed mb-12 max-w-lg">
@@ -468,6 +471,26 @@ const App: React.FC = () => {
                        <p className="text-slate-400 text-sm italic font-light leading-relaxed">{scanResult.description}</p>
                     </div>
 
+                    {/* Display Grounding Sources: Required by Gemini API guidelines when using googleSearch tool */}
+                    {scanResult.sources && scanResult.sources.length > 0 && (
+                      <div className="mb-10 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                        <span className="text-[10px] text-slate-500 font-mono uppercase block mb-4">Scientific Grounding Sources</span>
+                        <div className="flex flex-wrap gap-3">
+                          {scanResult.sources.map((source, i) => (
+                            <a 
+                              key={i} 
+                              href={source.uri} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-cyan-400 text-[11px] hover:underline flex items-center gap-1.5 bg-cyan-500/5 px-3 py-1.5 rounded-full border border-cyan-500/10 transition-colors hover:bg-cyan-500/10"
+                            >
+                              {source.title} <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-8 mb-10">
                       <div>
                         <span className="text-[10px] text-slate-500 font-mono uppercase block mb-4">Known Composition</span>
@@ -521,132 +544,6 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Mission Details Overlay */}
-      <AnimatePresence>
-          {isMissionOpen && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 md:p-20">
-                  <motion.div initial={{ opacity: 0, backdropFilter: 'blur(0px)' }} animate={{ opacity: 1, backdropFilter: 'blur(40px)' }} exit={{ opacity: 0, backdropFilter: 'blur(0px)' }} onClick={() => setIsMissionOpen(false)} className="absolute inset-0 bg-black/80" />
-                  <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-6xl glass-panel border-purple-500/30 rounded-[3rem] overflow-hidden shadow-[0_0_150px_rgba(139,92,246,0.2)] flex flex-col md:flex-row h-full max-h-[85vh]">
-                      <div className="w-full md:w-1/3 bg-purple-600/5 p-10 border-r border-white/5 flex flex-col justify-between text-left">
-                          <div>
-                              <div className="w-16 h-16 text-white mb-10">
-                                  <RespLogo strokeWidth={12} />
-                              </div>
-                              <h3 className="text-4xl font-display font-bold text-white mb-6 uppercase tracking-tighter">Mission Briefing</h3>
-                              <p className="text-slate-400 text-sm font-light leading-relaxed">Directive Alpha: Establish decentralized sovereignty over extraterrestrial resources.</p>
-                          </div>
-                          <div className="pt-10 space-y-4">
-                              <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
-                                  <Shield className="w-4 h-4 text-purple-500" /> SECURED DATA LINK
-                              </div>
-                              <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
-                                  <Rocket className="w-4 h-4 text-cyan-500" /> ACTIVE DEPLOYMENT
-                              </div>
-                          </div>
-                      </div>
-                      <div className="flex-1 p-10 md:p-16 overflow-y-auto text-left relative">
-                          <button onClick={() => setIsMissionOpen(false)} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors z-[110]">
-                              <X className="w-8 h-8" />
-                          </button>
-                          <div className="space-y-16">
-                              <section>
-                                  <h4 className="text-[10px] font-bold text-purple-500 uppercase tracking-[0.5em] mb-6 font-mono">01. The Prime Directive</h4>
-                                  <p className="text-2xl md:text-3xl font-display font-bold text-white leading-tight">
-                                      RESP is the foundation of <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">interplanetary civilization.</span>
-                                  </p>
-                                  <p className="text-slate-400 mt-8 leading-relaxed font-light text-lg">
-                                      Earth's resources are finite. Scarcity of materials like Helium-3 and rare isotopes is the bottleneck of human evolution. RESP decentralizes the ownership of the first celestial resource treasury.
-                                  </p>
-                              </section>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                  <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-purple-500/20 transition-colors">
-                                      <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-6">
-                                          <Globe className="text-purple-400 w-6 h-6" />
-                                      </div>
-                                      <h5 className="font-bold text-white mb-3 uppercase text-xs tracking-widest">Planetary Guard</h5>
-                                      <p className="text-slate-500 text-sm leading-relaxed font-light">Cease the ecological destruction caused by deep-earth extraction.</p>
-                                  </div>
-                                  <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-cyan-500/20 transition-colors">
-                                      <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6">
-                                          <Cpu className="text-cyan-400 w-6 h-6" />
-                                      </div>
-                                      <h5 className="font-bold text-white mb-3 uppercase text-xs tracking-widest">AI Analytics</h5>
-                                      <p className="text-slate-500 text-sm leading-relaxed font-light">Every cluster scan is processed and validated by our proprietary artificial intelligence core and recorded on the protocol ledger.</p>
-                                  </div>
-                              </div>
-                              <div className="pt-8 border-t border-white/5">
-                                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mb-10 font-mono">Active Target Acquisition</h4>
-                                  <div className="flex flex-col md:flex-row gap-8 items-center bg-purple-500/5 p-8 rounded-3xl border border-purple-500/10">
-                                      <div className="w-24 h-24 rounded-full bg-[#cbd5e1] shadow-[0_0_50px_rgba(34,211,238,0.2)] overflow-hidden shrink-0">
-                                          <img src="https://images.unsplash.com/photo-1522030239044-1230198d0bc7?q=80&w=1974&auto=format&fit=crop" className="w-full h-full object-cover grayscale opacity-50" />
-                                      </div>
-                                      <div>
-                                          <p className="text-white font-bold mb-2 uppercase text-xs tracking-widest">Sector: Lunar South Pole (Shackleton)</p>
-                                          <p className="text-slate-500 text-sm font-light">Initial focus area for high-density water-ice extraction. Estimated capacity: 10M Metric Tons.</p>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </motion.div>
-              </motion.div>
-          )}
-      </AnimatePresence>
-
-      <section id="roadmap" className="py-32 px-6 relative overflow-hidden bg-black/40">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-5xl font-display font-bold">Roadmap</h2>
-            <p className="text-slate-400 mt-6 max-w-2xl mx-auto font-light text-sm">Mapping the path from architecture to planetary-scale acquisition.</p>
-          </div>
-          <div className="relative">
-            <div className="absolute left-0 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-purple-500/30 to-transparent md:-translate-x-1/2" />
-            <div className="space-y-16">
-              {roadmap.map((item, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className={`relative flex flex-col md:flex-row gap-10 items-center ${i % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
-                  <div className="absolute left-0 md:left-1/2 top-1/2 -translate-y-1/2 w-4 h-4 bg-purple-500 rounded-full md:-translate-x-1/2 shadow-[0_0_20px_rgba(139,92,246,0.3)] border-4 border-black" />
-                  <div className="flex-1 md:text-right w-full">
-                    <div className={i % 2 === 0 ? 'md:pr-16 text-right' : 'md:pl-16 md:text-left text-left'}>
-                      <span className="text-purple-500 font-display font-bold text-2xl tracking-tighter mb-2 block">{item.year}</span>
-                      <h3 className="text-2xl font-display font-bold text-white mb-4 uppercase tracking-widest">{item.title}</h3>
-                      <p className="text-slate-400 text-sm font-light leading-relaxed">{item.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex-1 hidden md:block" />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="nft-launch" className="py-32 px-6 relative">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="mb-20">
-            <span className="text-purple-500 font-bold tracking-[0.4em] text-[10px] uppercase font-mono mb-4 block">Capital Allocation</span>
-            <h2 className="text-4xl md:text-5xl font-display font-bold mb-6">Treasury Matrix</h2>
-            <p className="text-slate-400 text-sm max-w-xl mx-auto font-light">Secure your license and fund the vanguard. 100% of proceeds go to the mission core.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {nftTiers.map((nft, i) => (
-              <div key={i} className={`relative group p-10 rounded-[2.5rem] border transition-all duration-500 ${nft.featured ? 'bg-purple-600/5 border-purple-500 shadow-2xl shadow-purple-500/10' : 'bg-white/[0.02] border-white/10 hover:border-white/30'}`}>
-                {nft.featured && <span className="absolute top-6 right-6 bg-purple-500 text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg shadow-purple-500/20">Vanguard</span>}
-                <div className="text-5xl mb-8 group-hover:scale-110 transition-transform inline-block">{nft.icon}</div>
-                <h3 className="text-2xl font-display font-bold mb-3">{nft.tier}</h3>
-                <a 
-                  href={nft.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className={`w-full py-5 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 uppercase text-[10px] tracking-[0.2em] ${nft.featured ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl shadow-purple-500/30' : 'bg-white text-black hover:bg-slate-200'}`}
-                >
-                  <Zap className="w-4 h-4" /> View on Rarible
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <footer id="contact" className="pt-32 pb-16 border-t border-white/5 bg-[#020408]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-20 mb-24 items-end">
@@ -668,12 +565,29 @@ const App: React.FC = () => {
               <div className="w-8 h-8 text-white">
                 <RespLogo strokeWidth={16} />
               </div>
-              <span className="ml-[-4px]">RESP</span>
+              <span className="ml-[-4px] notranslate" translate="no">RESP</span>
             </div>
             <p>© 2025 RESP. Deep Space Exploration & Extraction.</p>
           </div>
         </div>
       </footer>
+
+      <AnimatePresence>
+          {isMissionOpen && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 md:p-20">
+                  <motion.div initial={{ opacity: 0, backdropFilter: 'blur(0px)' }} animate={{ opacity: 1, backdropFilter: 'blur(40px)' }} exit={{ opacity: 0, backdropFilter: 'blur(0px)' }} onClick={() => setIsMissionOpen(false)} className="absolute inset-0 bg-black/80" />
+                  <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-6xl glass-panel border-purple-500/30 rounded-[3rem] overflow-hidden shadow-[0_0_150px_rgba(139,92,246,0.2)] flex flex-col md:flex-row h-full max-h-[85vh]">
+                      <div className="p-16 w-full text-center">
+                          <button onClick={() => setIsMissionOpen(false)} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors">
+                              <X className="w-8 h-8" />
+                          </button>
+                          <h3 className="text-4xl font-display font-bold text-white mb-6 uppercase">Mission Briefing</h3>
+                          <p className="text-slate-400 text-lg">Humanity is going interplanetary. Be part of the first mining frontier.</p>
+                      </div>
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
     </div>
   );
 };
