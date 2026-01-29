@@ -21,8 +21,8 @@
             overflow-x: hidden;
             margin: 0;
             padding: 0;
-            /* Performans için rendering optimizasyonu */
-            text-rendering: optimizeLegibility;
+            /* Performans optimizasyonu */
+            text-rendering: optimizeSpeed;
             -webkit-font-smoothing: antialiased;
         }
         .font-display { font-family: 'Space Grotesk', sans-serif; }
@@ -32,16 +32,24 @@
         ::-webkit-scrollbar-thumb { background: #8b5cf6; border-radius: 10px; }
         
         .nebula-glow {
-            filter: blur(60px); /* 120px'den 60px'e düşürüldü, kasma yapmaması için */
+            filter: blur(40px); /* Daha da düşürüldü, kasma yapmaması için */
             pointer-events: none;
             z-index: 0;
-            will-change: filter;
+            will-change: transform, opacity;
         }
 
         .glass-panel {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(8px); /* 12px'den 8px'e düşürüldü */
+            /* Backdrop filter mobil cihazlarda ve zayıf PC'lerde çok kasar. Sınırlandırıldı. */
+            backdrop-filter: blur(4px); 
             border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gpu-accelerated {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000;
+            will-change: transform;
         }
 
         @keyframes scanline {
@@ -52,21 +60,21 @@
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.05), transparent);
-            animation: scanline 3s linear infinite;
+            background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.03), transparent);
+            animation: scanline 4s linear infinite;
         }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "vite": "https://esm.sh/vite@^7.3.1",
     "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "framer-motion": "https://esm.sh/framer-motion@^12.29.2",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "framer-motion": "https://esm.sh/framer-motion@^12.29.2"
   }
 }
 </script>

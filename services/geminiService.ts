@@ -6,7 +6,11 @@ export class MiningAnalysisService {
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
-  async scanAsteroid(query: string): Promise<AsteroidAnalysis> {
+  private async sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async scanAsteroid(query: string, retryCount = 0): Promise<AsteroidAnalysis> {
     const ai = this.getAI();
 
     try {
@@ -14,7 +18,7 @@ export class MiningAnalysisService {
           model: "gemini-3-flash-preview",
           contents: `Analyze the celestial body: "${query}". Provide a scientific and economic mining report in JSON format.`,
           config: {
-            systemInstruction: "You are a space mining AI. Provide accurate data for real celestial bodies (planets, asteroids, moons) in JSON format. If it's not a real space body, return an error message in scientific tone.",
+            systemInstruction: "You are a space mining AI. Provide accurate data for real celestial bodies (planets, asteroids, moons) in JSON format.",
             responseMimeType: "application/json",
             tools: [{ googleSearch: {} }],
             responseSchema: {
@@ -45,24 +49,35 @@ export class MiningAnalysisService {
         });
 
         const text = response.text;
-        if (!text) throw new Error("AI response was empty.");
+        if (!text) throw new Error("Empty satellite link.");
+        
         const analysis = JSON.parse(text) as AsteroidAnalysis;
-
         const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
         if (groundingMetadata?.groundingChunks) {
           analysis.sources = groundingMetadata.groundingChunks
             .filter((chunk: any) => chunk.web)
             .map((chunk: any) => ({
-              title: chunk.web?.title || 'Scientific Source',
+              title: chunk.web?.title || 'Telemetry Source',
               uri: chunk.web?.uri || '#'
             }));
         }
 
         return analysis;
     } catch (e: any) {
+        // Kota aşımı (429) durumunda bir kez otomatik yeniden deneme
+        if (e.message?.includes("429") && retryCount < 1) {
+            console.log("Quota hit, retrying in 2 seconds...");
+            await this.sleep(2000);
+            return this.scanAsteroid(query, retryCount + 1);
+        }
+
         console.error("Gemini Error:", e);
-        // Hatanın detayını kullanıcıya gösteriyoruz ki nedenini anlayabilsin (kota mı, anahtar mı vb.)
-        throw new Error(`Analysis failed. AI says: ${e.message || 'Check your internet or API key'}`);
+        
+        if (e.message?.includes("429")) {
+            throw new Error("SATELLITE LINK SATURATED: You've reached the free tier limit. Please wait 60 seconds for orbit recalibration.");
+        }
+        
+        throw new Error("DEEP SPACE INTERFERENCE: Target out of range or analysis protocol failed.");
     }
   }
 }
