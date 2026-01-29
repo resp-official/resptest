@@ -11,7 +11,6 @@ export class MiningAnalysisService {
 
     try {
         const response = await ai.models.generateContent({
-          // gemini-3-flash-preview daha yüksek hız limitlerine sahiptir
           model: "gemini-3-flash-preview",
           contents: `Analyze the celestial body: "${query}". Provide a scientific and economic mining report in JSON format.`,
           config: {
@@ -46,7 +45,7 @@ export class MiningAnalysisService {
         });
 
         const text = response.text;
-        if (!text) throw new Error("Empty AI response.");
+        if (!text) throw new Error("AI response was empty.");
         const analysis = JSON.parse(text) as AsteroidAnalysis;
 
         const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
@@ -62,7 +61,8 @@ export class MiningAnalysisService {
         return analysis;
     } catch (e: any) {
         console.error("Gemini Error:", e);
-        throw new Error(`Analysis failed for '${query}'. Target may be out of range or unknown.`);
+        // Hatanın detayını kullanıcıya gösteriyoruz ki nedenini anlayabilsin (kota mı, anahtar mı vb.)
+        throw new Error(`Analysis failed. AI says: ${e.message || 'Check your internet or API key'}`);
     }
   }
 }

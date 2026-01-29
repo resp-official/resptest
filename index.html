@@ -21,6 +21,9 @@
             overflow-x: hidden;
             margin: 0;
             padding: 0;
+            /* Performans için rendering optimizasyonu */
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         }
         .font-display { font-family: 'Space Grotesk', sans-serif; }
         
@@ -29,14 +32,15 @@
         ::-webkit-scrollbar-thumb { background: #8b5cf6; border-radius: 10px; }
         
         .nebula-glow {
-            filter: blur(120px);
+            filter: blur(60px); /* 120px'den 60px'e düşürüldü, kasma yapmaması için */
             pointer-events: none;
             z-index: 0;
+            will-change: filter;
         }
 
         .glass-panel {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(8px); /* 12px'den 8px'e düşürüldü */
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -48,7 +52,7 @@
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.1), transparent);
+            background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.05), transparent);
             animation: scanline 3s linear infinite;
         }
     </style>
